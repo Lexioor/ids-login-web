@@ -8,12 +8,15 @@ import sqlite3
 import struct
 import time
 import json
+import io
 import urllib.request
 import urllib.parse
 from pathlib import Path
 
 import dns.resolver
-from flask import Flask, abort, redirect, render_template, request, session, url_for
+from flask import Flask, Response, abort, redirect, render_template, request, session, url_for
+import qrcode
+import qrcode.image.svg
 from werkzeug.security import check_password_hash, generate_password_hash
 from flask_session import Session
 from cachelib.file import FileSystemCache
@@ -167,6 +170,25 @@ def register():
         except ValueError as e:
             error = str(e)
     return render_template('auth.html', mode='register', error=error)
+
+
+def authenticator_uri(enrollment):
+    label = urllib.parse.quote('Sitio seguro:' + enrollment['email'], safe='')
+    params = urllib.parse.urlencode({'secret': enrollment['secret'], 'issuer': 'Sitio seguro',
+                                    'algorithm': 'SHA1', 'digits': 6, 'period': 30})
+    return 'otpauth://totp/' + label + '?' + params
+
+
+@app.get('/mfa/qr')
+def mfa_qr():
+    enrollment = session.get('enrollment')
+    if not enrollment or session.get('expires', 0) < time.time():
+        abort(403)
+    output = io.BytesIO()
+    qr = qrcode.make(authenticator_uri(enrollment), image_factory=qrcode.image.svg.SvgPathImage,
+                     error_correction=qrcode.constants.ERROR_CORRECT_M, border=4)
+    qr.save(output)
+    return Response(output.getvalue(), mimetype='image/svg+xml')
 
 
 @app.route('/mfa', methods=['GET', 'POST'])

@@ -78,3 +78,27 @@ def test_https_dns_fallback(monkeypatch):
     monkeypatch.setattr(module.urllib.request, 'urlopen', lambda *a, **k: io.BytesIO(b'{"Status":3}'))
     with pytest.raises(ValueError, match='no existe'):
         module.validate_email('ana@dominio.invalid')
+
+
+def test_registration_qr(client):
+    from urllib.parse import urlparse, parse_qs, unquote
+    import xml.etree.ElementTree as ET
+    assert client.get('/mfa/qr').status_code == 403
+    response = post(client, '/registro', {'email': 'qr@example.com', 'password': 'Seguro123!', 'confirm': 'Seguro123!'})
+    assert b'/mfa/qr' in response.data
+    with client.session_transaction() as s:
+        enrollment = s['enrollment']
+    uri = urlparse(module.authenticator_uri(enrollment))
+    assert uri.scheme == 'otpauth' and uri.netloc == 'totp'
+    assert unquote(uri.path) == '/Sitio seguro:qr@example.com'
+    query = parse_qs(uri.query)
+    assert query['secret'] == [enrollment['secret']]
+    assert query['issuer'] == ['Sitio seguro']
+    assert query['digits'] == ['6'] and query['period'] == ['30']
+    qr = client.get('/mfa/qr')
+    assert qr.status_code == 200 and qr.mimetype == 'image/svg+xml'
+    assert qr.headers['Cache-Control'] == 'no-store'
+    assert ET.fromstring(qr.data).tag.endswith('svg')
+    with client.session_transaction() as s:
+        s['expires'] = time.time() - 1
+    assert client.get('/mfa/qr').status_code == 403

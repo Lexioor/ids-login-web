@@ -3,3 +3,4 @@ dnspython==2.8.0
 pytest==8.4.2
 Flask-Session==0.8.0
 cachelib==0.13.0
+qrcode==8.2

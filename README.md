@@ -11,7 +11,7 @@ python -m venv .venv
 .venv/bin/python app.py
 ```
 
-El servidor de desarrollo escucha en el puerto 8000. Abre `/registro`, crea una cuenta y agrega la clave manual a Google Authenticator, Microsoft Authenticator o Aegis (TOTP, SHA-1, 6 dígitos, período de 30 segundos). Confirma con el código actual. Para un nuevo inicio de sesión, usa correo, contraseña y un nuevo código. Sincroniza la hora del teléfono.
+El servidor de desarrollo escucha en el puerto 8000. Abre `/registro`, crea una cuenta y escanea el QR con Google Authenticator, Microsoft Authenticator o Aegis (también puedes agregar la clave manual) (TOTP, SHA-1, 6 dígitos, período de 30 segundos). El QR se genera localmente, sin enviar la clave a servicios externos, y solo está disponible durante el registro pendiente. Confirma con el código actual. Para un nuevo inicio de sesión, usa correo, contraseña y un nuevo código. Sincroniza la hora del teléfono.
 
 ## Requisitos implementados
 
